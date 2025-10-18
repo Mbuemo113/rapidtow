@@ -350,6 +350,30 @@ footer {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
+/* Provider dashboard action buttons */
+.btn-sm {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  margin-right: 0.4rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: #fff;
+}
+.btn-sm.accept {
+  background-color: #28a745;
+}
+.btn-sm.decline {
+  background-color: #dc3545;
+}
+.btn-sm.complete {
+  background-color: #007bff;
+}
+.btn-sm:hover {
+  opacity: 0.85;
+}
+
 .chat-section h2 {
   text-align: center;
   margin-bottom: 1rem;

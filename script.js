@@ -174,6 +174,54 @@ function assignProvider(newBooking) {
   }
 }
 
+/* ---------------------------------------------------------------------------
+ * Provider action handlers
+ * Providers can accept, decline, or complete service requests from their dashboard.
+ */
+function acceptRequest(createdAt) {
+  const bookings = getStorage('bookings');
+  const current = getCurrentUser();
+  if (!bookings || !current) return;
+  const booking = bookings.find(b => b.createdAt === createdAt);
+  if (booking) {
+    booking.providerEmail = current.email;
+    booking.status = 'assigned';
+    // remove provider from declined list if present
+    if (booking.declinedProviders) {
+      booking.declinedProviders = booking.declinedProviders.filter(e => e !== current.email);
+    }
+    setStorage('bookings', bookings);
+    loadProviderDashboard();
+  }
+}
+
+function declineRequest(createdAt) {
+  const bookings = getStorage('bookings');
+  const current = getCurrentUser();
+  if (!bookings || !current) return;
+  const booking = bookings.find(b => b.createdAt === createdAt);
+  if (booking) {
+    if (!booking.declinedProviders) booking.declinedProviders = [];
+    if (!booking.declinedProviders.includes(current.email)) {
+      booking.declinedProviders.push(current.email);
+    }
+    setStorage('bookings', bookings);
+    loadProviderDashboard();
+  }
+}
+
+function completeRequest(createdAt) {
+  const bookings = getStorage('bookings');
+  const current = getCurrentUser();
+  if (!bookings || !current) return;
+  const booking = bookings.find(b => b.createdAt === createdAt);
+  if (booking && booking.providerEmail === current.email) {
+    booking.status = 'completed';
+    setStorage('bookings', bookings);
+    loadProviderDashboard();
+  }
+}
+
 // Contact form handler
 function handleContact(event) {
   event.preventDefault();
@@ -485,7 +533,7 @@ handleBooking = function(event) {
   formMessage.textContent = '';
 
   // gather booking from original function
-  const booking = {
+    const booking = {
     name: form.name.value.trim(),
     phone: form.phone.value.trim(),
     email: form.email.value.trim(),
@@ -499,7 +547,9 @@ handleBooking = function(event) {
     lat: currentPosition ? currentPosition.latitude : null,
     lng: currentPosition ? currentPosition.longitude : null,
     userEmail: getCurrentUser() ? getCurrentUser().email : null,
-    status: 'pending'
+    status: 'pending',
+    // track providers who declined this request
+    declinedProviders: []
   };
   // validation
   if (!booking.name || !booking.phone || !booking.email || !booking.vehicle || !booking.serviceType || !booking.pickup) {
@@ -514,8 +564,7 @@ handleBooking = function(event) {
   bookings.push(booking);
   setStorage('bookings', bookings);
 
-  // Attempt to assign a provider to this new booking
-  assignProvider(booking);
+  // Do not automatically assign a provider; provider will accept or decline from dashboard
   form.reset();
   formMessage.style.color = 'green';
   formMessage.textContent = 'Your request has been submitted successfully! We will contact you shortly.';
@@ -667,10 +716,12 @@ function loadProviderDashboard() {
       const pendingEl = document.getElementById('providerPendingRequests');
       const assignedToYouEl = document.getElementById('providerAssignedToYou');
       const assignedOthersEl = document.getElementById('providerAssignedOthers');
+      const completedEl = document.getElementById('providerCompletedRequests');
       if (totalEl) totalEl.textContent = bookings ? bookings.length : 0;
-      if (pendingEl) pendingEl.textContent = bookings ? bookings.filter(b => !b.providerEmail).length : 0;
-      if (assignedToYouEl) assignedToYouEl.textContent = bookings ? bookings.filter(b => b.providerEmail === current.email).length : 0;
-      if (assignedOthersEl) assignedOthersEl.textContent = bookings ? bookings.filter(b => b.providerEmail && b.providerEmail !== current.email).length : 0;
+      if (pendingEl) pendingEl.textContent = bookings ? bookings.filter(b => b.status === 'pending').length : 0;
+      if (assignedToYouEl) assignedToYouEl.textContent = bookings ? bookings.filter(b => b.status === 'assigned' && b.providerEmail === current.email).length : 0;
+      if (assignedOthersEl) assignedOthersEl.textContent = bookings ? bookings.filter(b => b.status === 'assigned' && b.providerEmail && b.providerEmail !== current.email).length : 0;
+      if (completedEl) completedEl.textContent = bookings ? bookings.filter(b => b.status === 'completed').length : 0;
 
       // update recent requests section
       const recentEl = document.getElementById('providerRecentRequests');
@@ -702,27 +753,48 @@ function loadProviderDashboard() {
         }
       }
 
+      // Build requests list with details and action buttons
+      requestsEl.innerHTML = '';
       if (!bookings || bookings.length === 0) {
         requestsEl.innerHTML = '<p>No service requests yet.</p>';
       } else {
-        requestsEl.innerHTML = '';
-        bookings.forEach(b => {
+        // sort bookings by date descending
+        const sortedBookings = bookings.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        sortedBookings.forEach(b => {
+          // Skip requests that current provider has declined
+          if (b.declinedProviders && b.declinedProviders.includes(current.email)) {
+            return;
+          }
           const div = document.createElement('div');
           div.className = 'booking-item';
-          // Determine assignment
-          let assignmentInfo = '';
-          if (b.providerEmail) {
+          // Build detail lines
+          let details = '';
+          details += `<p><strong>Service:</strong> ${b.serviceType}</p>`;
+          details += `<p><strong>Customer:</strong> ${b.name} (${b.phone})</p>`;
+          details += `<p><strong>Vehicle:</strong> ${b.vehicle}</p>`;
+          details += `<p><strong>Pickup:</strong> ${b.pickup}</p>`;
+          if (b.destination) details += `<p><strong>Destination:</strong> ${b.destination}</p>`;
+          details += `<p><strong>Date:</strong> ${new Date(b.datetime).toLocaleString()}</p>`;
+          details += `<p><strong>Status:</strong> ${b.status}</p>`;
+          // Determine assignment info and action buttons
+          let actions = '';
+          if (b.status === 'pending') {
+            // show accept/decline buttons
+            actions += `<button class="btn-sm accept" onclick="acceptRequest('${b.createdAt}')">Accept</button>`;
+            actions += `<button class="btn-sm decline" onclick="declineRequest('${b.createdAt}')">Decline</button>`;
+          } else if (b.status === 'assigned') {
             if (b.providerEmail === current.email) {
-              assignmentInfo = ' <span style="color:green;">(Assigned to you)</span>';
+              actions += `<span style="color:green; font-weight:bold;">Assigned to you</span> `;
+              actions += `<button class="btn-sm complete" onclick="completeRequest('${b.createdAt}')">Mark Completed</button>`;
             } else {
               const prov = getUsers().find(u => u.email === b.providerEmail);
-              assignmentInfo = ` <span style="color:gray;">(Assigned to ${prov ? prov.name : 'another provider'})</span>`;
+              const provName = prov ? prov.name : 'another provider';
+              actions += `<span style="color:gray;">Assigned to ${provName}</span>`;
             }
+          } else if (b.status === 'completed') {
+            actions += `<span style="color:blue; font-weight:bold;">Completed</span>`;
           }
-          div.innerHTML = `<strong>${b.serviceType}</strong> request by ${b.name}${assignmentInfo}<br>
-            Pickup: ${b.pickup}<br>
-            ${b.destination ? 'Destination: ' + b.destination + '<br>' : ''}Date: ${new Date(b.datetime).toLocaleString()}<br>
-            Status: ${b.status}`;
+          div.innerHTML = details + '<div class="actions">' + actions + '</div>';
           requestsEl.appendChild(div);
         });
       }
