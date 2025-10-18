@@ -296,6 +296,13 @@ document.addEventListener('DOMContentLoaded', function () {
     captureLocation();
   }
 
+  // Initialize interactive booking map after capturing current location
+  // Delay initialization slightly to allow geolocation to resolve
+  if (document.getElementById('pickupMap')) {
+    // Use a timeout to ensure currentPosition has been set by captureLocation
+    setTimeout(initBookingMap, 800);
+  }
+
   // Chat messenger handlers
   const chatForm = document.getElementById('chatForm');
   if (chatForm) {
@@ -487,6 +494,40 @@ function captureLocation() {
       }
     );
   }
+}
+
+/* ---------------------------------------------------------------------------
+ * Initialize interactive map for selecting pickup location on the booking page.
+ * If a <div id="pickupMap"> is present, this function will create a Leaflet
+ * map centered on the user's current position (if available) or a default
+ * location. Users can click the map or drag the marker to set their exact
+ * pickup coordinates, which updates the global currentPosition used when
+ * submitting a booking. Requires Leaflet JS and CSS to be loaded.
+ */
+function initBookingMap() {
+  const mapEl = document.getElementById('pickupMap');
+  // only run if map element exists and Leaflet is loaded
+  if (!mapEl || typeof L === 'undefined') return;
+  // determine starting coordinates
+  const startLat = currentPosition && currentPosition.latitude ? currentPosition.latitude : 5.6037;
+  const startLng = currentPosition && currentPosition.longitude ? currentPosition.longitude : -0.1870;
+  const map = L.map(mapEl).setView([startLat, startLng], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+  // place a draggable marker at the starting position
+  let marker = L.marker([startLat, startLng], { draggable: true }).addTo(map);
+  // update currentPosition when marker is moved
+  function updatePos(latlng) {
+    marker.setLatLng(latlng);
+    currentPosition = { latitude: latlng.lat, longitude: latlng.lng };
+  }
+  map.on('click', function(e) {
+    updatePos(e.latlng);
+  });
+  marker.on('dragend', function(e) {
+    updatePos(e.target.getLatLng());
+  });
 }
 
 // Continuously update the current user's geolocation and persist to storage.
