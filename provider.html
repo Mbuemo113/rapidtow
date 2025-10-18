@@ -30,6 +30,36 @@
       <p>Welcome, <span id="providerName"></span>!</p>
     </div>
   </section>
+  <!-- Statistics Section -->
+  <section class="stats">
+    <div class="container stats-grid">
+      <div class="stat-card">
+        <h3>Total Requests</h3>
+        <p id="providerTotalRequests">0</p>
+      </div>
+      <div class="stat-card">
+        <h3>Pending Requests</h3>
+        <p id="providerPendingRequests">0</p>
+      </div>
+      <div class="stat-card">
+        <h3>Your Assignments</h3>
+        <p id="providerAssignedToYou">0</p>
+      </div>
+      <div class="stat-card">
+        <h3>Others' Assignments</h3>
+        <p id="providerAssignedOthers">0</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Recent Requests Section -->
+  <section>
+    <div class="container">
+      <h3>Recent Requests</h3>
+      <div id="providerRecentRequests" class="dashboard-list"></div>
+    </div>
+  </section>
+
   <!-- Main Dashboard Content -->
   <section>
     <div class="container">

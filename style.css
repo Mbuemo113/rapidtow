@@ -401,3 +401,45 @@ footer {
 .chat-section button:hover {
   background: #005fa3;
 }
+
+/* Statistics cards for dashboards */
+.stats {
+  padding: 2rem 1rem;
+}
+
+.stats-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.stat-card {
+  flex: 1 1 200px;
+  background: #fff;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  text-align: center;
+}
+
+.stat-card h3 {
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+  color: #002e5d;
+}
+
+.stat-card p {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #0077cc;
+  margin: 0;
+}
+
+/* Adjust stats layout on smaller screens */
+@media (max-width: 768px) {
+  .stats-grid {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

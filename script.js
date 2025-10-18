@@ -538,7 +538,45 @@ function loadUserDashboard() {
   }
   const listEl = document.getElementById('bookingsList');
   if (!listEl) return;
+  // get all bookings for this user
   const bookings = getStorage('bookings').filter(b => b.userEmail === current.email);
+
+  // update statistics values if elements present
+  const totalEl = document.getElementById('totalRequests');
+  const pendingEl = document.getElementById('pendingRequests');
+  const assignedEl = document.getElementById('assignedRequests');
+  if (totalEl) totalEl.textContent = bookings.length;
+  if (pendingEl) pendingEl.textContent = bookings.filter(b => b.status === 'pending').length;
+  if (assignedEl) assignedEl.textContent = bookings.filter(b => b.status === 'assigned').length;
+
+  // populate recent requests
+  const recentEl = document.getElementById('recentRequests');
+  if (recentEl) {
+    recentEl.innerHTML = '';
+    if (bookings.length === 0) {
+      recentEl.innerHTML = '<p>No recent requests.</p>';
+    } else {
+      const sorted = bookings.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      const top = sorted.slice(0, 3);
+      top.forEach(b => {
+        const div = document.createElement('div');
+        div.className = 'booking-item';
+        let providerInfo = '';
+        if (b.providerEmail) {
+          const provider = getUsers().find(u => u.email === b.providerEmail);
+          if (provider) {
+            providerInfo = `<br>Assigned to: ${provider.name} (${provider.carType || 'Provider'})`;
+          }
+        }
+        div.innerHTML = `<strong>${b.serviceType}</strong> on ${new Date(b.datetime).toLocaleString()}<br>
+          Pickup: ${b.pickup}${b.destination ? ', Destination: ' + b.destination : ''}<br>
+          Status: ${b.status}${providerInfo}`;
+        recentEl.appendChild(div);
+      });
+    }
+  }
+
+  // populate full bookings list
   if (bookings.length === 0) {
     listEl.innerHTML = '<p>You have no requests yet.</p>';
   } else {
@@ -546,7 +584,6 @@ function loadUserDashboard() {
     bookings.forEach(b => {
       const div = document.createElement('div');
       div.className = 'booking-item';
-      // find provider details if assigned
       let providerInfo = '';
       if (b.providerEmail) {
         const provider = getUsers().find(u => u.email === b.providerEmail);
@@ -621,33 +658,74 @@ function loadProviderDashboard() {
   if (nameEl) {
     nameEl.textContent = current.name;
   }
-  const requestsEl = document.getElementById('requestsList');
-  if (!requestsEl) return;
-  const bookings = getStorage('bookings');
-  if (!bookings || bookings.length === 0) {
-    requestsEl.innerHTML = '<p>No service requests yet.</p>';
-  } else {
-    requestsEl.innerHTML = '';
-    bookings.forEach(b => {
-      const div = document.createElement('div');
-      div.className = 'booking-item';
-      // Determine assignment
-      let assignmentInfo = '';
-      if (b.providerEmail) {
-        if (b.providerEmail === current.email) {
-          assignmentInfo = ' <span style="color:green;">(Assigned to you)</span>';
+      const requestsEl = document.getElementById('requestsList');
+      if (!requestsEl) return;
+      const bookings = getStorage('bookings');
+
+      // update statistics if elements present
+      const totalEl = document.getElementById('providerTotalRequests');
+      const pendingEl = document.getElementById('providerPendingRequests');
+      const assignedToYouEl = document.getElementById('providerAssignedToYou');
+      const assignedOthersEl = document.getElementById('providerAssignedOthers');
+      if (totalEl) totalEl.textContent = bookings ? bookings.length : 0;
+      if (pendingEl) pendingEl.textContent = bookings ? bookings.filter(b => !b.providerEmail).length : 0;
+      if (assignedToYouEl) assignedToYouEl.textContent = bookings ? bookings.filter(b => b.providerEmail === current.email).length : 0;
+      if (assignedOthersEl) assignedOthersEl.textContent = bookings ? bookings.filter(b => b.providerEmail && b.providerEmail !== current.email).length : 0;
+
+      // update recent requests section
+      const recentEl = document.getElementById('providerRecentRequests');
+      if (recentEl) {
+        recentEl.innerHTML = '';
+        if (!bookings || bookings.length === 0) {
+          recentEl.innerHTML = '<p>No recent requests.</p>';
         } else {
-          const prov = getUsers().find(u => u.email === b.providerEmail);
-          assignmentInfo = ` <span style="color:gray;">(Assigned to ${prov ? prov.name : 'another provider'})</span>`;
+          const sorted = bookings.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+          const top = sorted.slice(0, 3);
+          top.forEach(b => {
+            const div = document.createElement('div');
+            div.className = 'booking-item';
+            let assignmentInfo = '';
+            if (b.providerEmail) {
+              if (b.providerEmail === current.email) {
+                assignmentInfo = ' <span style="color:green;">(Assigned to you)</span>';
+              } else {
+                const prov = getUsers().find(u => u.email === b.providerEmail);
+                assignmentInfo = ` <span style="color:gray;">(Assigned to ${prov ? prov.name : 'another provider'})</span>`;
+              }
+            }
+            div.innerHTML = `<strong>${b.serviceType}</strong> request by ${b.name}${assignmentInfo}<br>
+              Pickup: ${b.pickup}${b.destination ? ', Destination: ' + b.destination : ''}<br>
+              Date: ${new Date(b.datetime).toLocaleString()}<br>
+              Status: ${b.status}`;
+            recentEl.appendChild(div);
+          });
         }
       }
-      div.innerHTML = `<strong>${b.serviceType}</strong> request by ${b.name}${assignmentInfo}<br>
-        Pickup: ${b.pickup}<br>
-        ${b.destination ? 'Destination: ' + b.destination + '<br>' : ''}Date: ${new Date(b.datetime).toLocaleString()}<br>
-        Status: ${b.status}`;
-      requestsEl.appendChild(div);
-    });
-  }
+
+      if (!bookings || bookings.length === 0) {
+        requestsEl.innerHTML = '<p>No service requests yet.</p>';
+      } else {
+        requestsEl.innerHTML = '';
+        bookings.forEach(b => {
+          const div = document.createElement('div');
+          div.className = 'booking-item';
+          // Determine assignment
+          let assignmentInfo = '';
+          if (b.providerEmail) {
+            if (b.providerEmail === current.email) {
+              assignmentInfo = ' <span style="color:green;">(Assigned to you)</span>';
+            } else {
+              const prov = getUsers().find(u => u.email === b.providerEmail);
+              assignmentInfo = ` <span style="color:gray;">(Assigned to ${prov ? prov.name : 'another provider'})</span>`;
+            }
+          }
+          div.innerHTML = `<strong>${b.serviceType}</strong> request by ${b.name}${assignmentInfo}<br>
+            Pickup: ${b.pickup}<br>
+            ${b.destination ? 'Destination: ' + b.destination + '<br>' : ''}Date: ${new Date(b.datetime).toLocaleString()}<br>
+            Status: ${b.status}`;
+          requestsEl.appendChild(div);
+        });
+      }
   // map showing provider and requests
   if (typeof L !== 'undefined') {
     const mapEl = document.getElementById('providerMap');
