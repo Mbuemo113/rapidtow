@@ -17,15 +17,22 @@
         <div class="logo">RapidTow</div>
         <ul>
           <li><a href="index.html">Home</a></li>
+          <li><a href="chat.html">Messenger</a></li>
           <li><button onclick="logout()" class="btn-link">Logout</button></li>
         </ul>
       </nav>
     </div>
   </header>
+  <!-- Dashboard Hero -->
+  <section class="dashboard-hero">
+    <div class="container">
+      <h1>Provider Dashboard</h1>
+      <p>Welcome, <span id="providerName"></span>!</p>
+    </div>
+  </section>
+  <!-- Main Dashboard Content -->
   <section>
     <div class="container">
-      <h2>Provider Dashboard</h2>
-      <p>Welcome, <span id="providerName"></span>!</p>
       <h3>Service Requests</h3>
       <div id="requestsList" class="dashboard-list"></div>
       <h3>Request Locations</h3>
