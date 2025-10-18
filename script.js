@@ -243,6 +243,13 @@ document.addEventListener('DOMContentLoaded', function () {
   if (bookingForm && navigator.geolocation) {
     captureLocation();
   }
+
+  // Chat messenger handlers
+  const chatForm = document.getElementById('chatForm');
+  if (chatForm) {
+    chatForm.addEventListener('submit', handleChatSubmit);
+    loadChatMessages();
+  }
 });
 
 /* ---------------------------------------------------------------------------
@@ -357,6 +364,59 @@ function handleLogin(e) {
 function logout() {
   setCurrentUser(null);
   window.location.href = 'index.html';
+}
+
+/* ---------------------------------------------------------------------------
+ * Simple chat messenger functionality
+ * Messages are stored in localStorage under the key 'chatMessages'. Each message
+ * object contains {from: email, text: message body, timestamp: ISO string}.
+ */
+
+function getChatMessages() {
+  return getStorage('chatMessages');
+}
+
+function setChatMessages(msgs) {
+  setStorage('chatMessages', msgs);
+}
+
+function loadChatMessages() {
+  const container = document.getElementById('chatMessages');
+  if (!container) return;
+  const msgs = getChatMessages();
+  container.innerHTML = '';
+  msgs.forEach(m => {
+    const div = document.createElement('div');
+    const current = getCurrentUser();
+    // highlight messages from current user
+    if (current && current.email === m.from) {
+      div.className = 'message own';
+    } else {
+      div.className = 'message';
+    }
+    const sender = m.from || 'Anonymous';
+    div.innerHTML = `<strong>${sender}:</strong> ${m.text}`;
+    container.appendChild(div);
+  });
+  container.scrollTop = container.scrollHeight;
+}
+
+function handleChatSubmit(e) {
+  e.preventDefault();
+  const input = document.getElementById('chatInput');
+  if (!input) return;
+  const text = input.value.trim();
+  if (!text) return;
+  const current = getCurrentUser();
+  const msgs = getChatMessages();
+  msgs.push({
+    from: current ? current.email : 'Guest',
+    text: text,
+    timestamp: new Date().toISOString()
+  });
+  setChatMessages(msgs);
+  input.value = '';
+  loadChatMessages();
 }
 
 // Capture user's current geolocation (if permitted)

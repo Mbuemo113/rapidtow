@@ -3,11 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Your Dashboard – RapidTow</title>
+  <title>Messenger – RapidTow</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-DlZTZgoiAN6f5EtDs33nPgkYzM+NoU8+11nEhx4qX6x8NZnf02fZK9nzPrOjz35VD1HT+cUHmH3OUMZHi+XLZw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <!-- Leaflet CSS for maps -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-Dv6JDWoO4DGuacrotbfCy3T0AG2wOfW7hMd4U3ztCxo=" crossorigin=""/>
 </head>
 <body>
   <!-- Navigation -->
@@ -17,27 +15,27 @@
         <div class="logo">RapidTow</div>
         <ul>
           <li><a href="index.html">Home</a></li>
-          <li><a href="chat.html">Messenger</a></li>
           <li><button onclick="logout()" class="btn-link">Logout</button></li>
         </ul>
       </nav>
     </div>
   </header>
-  <!-- Dashboard Hero -->
+  <!-- Chat Hero -->
   <section class="dashboard-hero">
     <div class="container">
-      <h1>Welcome, <span id="userName"></span>!</h1>
-      <p>Manage your service requests and track assistance here.</p>
+      <h1>Messenger</h1>
+      <p>Chat in real time with other RapidTow users.</p>
     </div>
   </section>
-  <!-- Main Dashboard Content -->
-  <section>
+  <!-- Chat Section -->
+  <section class="chat-section">
     <div class="container">
-      <h3>Your Bookings</h3>
-      <div id="bookingsList" class="dashboard-list"></div>
-      <a href="book.html" class="btn">Request New Service</a>
-      <h3>Your Location</h3>
-      <div id="map" style="height:400px; margin-bottom: 2rem;"></div>
+      <h2>Messages</h2>
+      <div id="chatMessages" class="chat-messages"></div>
+      <form id="chatForm">
+        <input type="text" id="chatInput" placeholder="Type your message..." required>
+        <button type="submit" class="btn">Send</button>
+      </form>
     </div>
   </section>
   <footer>
@@ -48,8 +46,6 @@
   <script>
     document.getElementById('year').textContent = new Date().getFullYear();
   </script>
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-vblb2JZEjVTzE5sdWk3XNbZoRul+91P0dm50QVurRNk=" crossorigin=""></script>
   <script src="script.js"></script>
 </body>
 </html>
