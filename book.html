@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Request Service - RapidTow</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-DlZTZgoiAN6f5EtDs33nPgkYzM+NoU8+11nEhx4qX6x8NZnf02fZK9nzPrOjz35VD1HT+cUHmH3OUMZHi+XLZw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body>
+  <!-- Navigation -->
+  <header>
+    <div class="container">
+      <nav>
+        <div class="logo">RapidTow</div>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="services.html">Services</a></li>
+          <li><a href="book.html">Request Service</a></li>
+          <li><a href="about.html">About</a></li>
+          <li><a href="contact.html">Contact</a></li>
+          <li><a href="admin.html">Admin</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <section>
+    <div class="container">
+      <h2>Request Towing Service</h2>
+      <form id="bookingForm">
+        <div class="form-group">
+          <label for="name">Full Name</label>
+          <input type="text" id="name" name="name" placeholder="Your Name" required>
+        </div>
+        <div class="form-group">
+          <label for="phone">Phone Number</label>
+          <input type="tel" id="phone" name="phone" placeholder="e.g., 024-000-0000" required>
+        </div>
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" name="email" placeholder="you@example.com" required>
+        </div>
+        <div class="form-group">
+          <label for="vehicle">Vehicle Type</label>
+          <select id="vehicle" name="vehicle" required>
+            <option value="">Select vehicle type</option>
+            <option>Car</option>
+            <option>Motorcycle</option>
+            <option>Truck</option>
+            <option>Bus</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="serviceType">Service Needed</label>
+          <select id="serviceType" name="serviceType" required>
+            <option value="">Select service</option>
+            <option>Towing</option>
+            <option>Jumpstart</option>
+            <option>Tire Change</option>
+            <option>Fuel Delivery</option>
+            <option>Lockout</option>
+            <option>Recovery</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="pickup">Pickup Location</label>
+          <input type="text" id="pickup" name="pickup" placeholder="Street address or description" required>
+        </div>
+        <div class="form-group">
+          <label for="destination">Destination (optional)</label>
+          <input type="text" id="destination" name="destination" placeholder="Where to tow the vehicle">
+        </div>
+        <div class="form-group">
+          <label for="date">Date &amp; Time (optional)</label>
+          <input type="datetime-local" id="datetime" name="datetime">
+        </div>
+        <div class="form-group">
+          <label for="notes">Additional Notes</label>
+          <textarea id="notes" name="notes" placeholder="Any special instructions..."></textarea>
+        </div>
+        <button type="submit" class="btn">Submit Request</button>
+        <p id="formMessage" style="margin-top: 1rem; font-weight: 500;"></p>
+      </form>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <p>&copy; <span id="year"></span> RapidTow. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>

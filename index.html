@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RapidTow - Reliable Towing Services</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Font Awesome CDN for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-DlZTZgoiAN6f5EtDs33nPgkYzM+NoU8+11nEhx4qX6x8NZnf02fZK9nzPrOjz35VD1HT+cUHmH3OUMZHi+XLZw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body>
+  <!-- Navigation -->
+  <header>
+    <div class="container">
+      <nav>
+        <div class="logo">RapidTow</div>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="services.html">Services</a></li>
+          <li><a href="book.html">Request Service</a></li>
+          <li><a href="about.html">About</a></li>
+          <li><a href="contact.html">Contact</a></li>
+          <li><a href="admin.html">Admin</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-content">
+      <h1>24/7 Towing &amp; Roadside Assistance</h1>
+      <p>Your safety is our priority. Fast, friendly, and reliable towing services whenever and wherever you need us.</p>
+      <a href="book.html" class="btn">Request Assistance</a>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section>
+    <div class="container">
+      <h2>Why Choose RapidTow?</h2>
+      <div class="features">
+        <div class="feature-card">
+          <i class="fas fa-clock"></i>
+          <h3>Round-the-Clock Service</h3>
+          <p>We operate 24 hours a day, 7 days a week. No matter when you need help, we’ll be there.</p>
+        </div>
+        <div class="feature-card">
+          <i class="fas fa-map-marker-alt"></i>
+          <h3>Wide Coverage Area</h3>
+          <p>Our fleet covers all of Greater Accra and beyond, ensuring fast response times wherever you are.</p>
+        </div>
+        <div class="feature-card">
+          <i class="fas fa-user-shield"></i>
+          <h3>Trusted Professionals</h3>
+          <p>Our drivers are fully licensed, insured, and trained to handle emergencies with care.</p>
+        </div>
+        <div class="feature-card">
+          <i class="fas fa-car-battery"></i>
+          <h3>Comprehensive Services</h3>
+          <p>From towing and recovery to jumpstarts and tire changes, we’ve got you covered.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <p>&copy; <span id="year"></span> RapidTow. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script>
+    // Set current year in footer
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
