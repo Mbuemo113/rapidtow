@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Provider Dashboard – RapidTow</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-DlZTZgoiAN6f5EtDs33nPgkYzM+NoU8+11nEhx4qX6x8NZnf02fZK9nzPrOjz35VD1HT+cUHmH3OUMZHi+XLZw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-Dv6JDWoO4DGuacrotbfCy3T0AG2wOfW7hMd4U3ztCxo=" crossorigin=""/>
+</head>
+<body>
+  <!-- Navigation -->
+  <header>
+    <div class="container">
+      <nav>
+        <div class="logo">RapidTow</div>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><button onclick="logout()" class="btn-link">Logout</button></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+  <section>
+    <div class="container">
+      <h2>Provider Dashboard</h2>
+      <p>Welcome, <span id="providerName"></span>!</p>
+      <h3>Service Requests</h3>
+      <div id="requestsList" class="dashboard-list"></div>
+      <h3>Request Locations</h3>
+      <div id="providerMap" style="height:500px; margin-bottom:2rem;"></div>
+    </div>
+  </section>
+  <footer>
+    <div class="container">
+      <p>&copy; <span id="year"></span> RapidTow. All rights reserved.</p>
+    </div>
+  </footer>
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-vblb2JZEjVTzE5sdWk3XNbZoRul+91P0dm50QVurRNk=" crossorigin=""></script>
+  <script src="script.js"></script>
+</body>
+</html>

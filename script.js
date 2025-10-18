@@ -149,6 +149,31 @@ function deleteMessage(index) {
   }
 }
 
+/* ---------------------------------------------------------------------------
+ * Booking assignment
+ * Assigns a provider to a new booking. The simplest strategy assigns the first
+ * available provider from the users list. Updates the booking object stored
+ * in localStorage with providerEmail and status="assigned" if a provider is
+ * found.
+ */
+function assignProvider(newBooking) {
+  // Only assign if provider not already set
+  if (newBooking.providerEmail) return;
+  const users = getUsers();
+  // find first provider
+  const provider = users.find(u => u.role === 'provider');
+  if (provider) {
+    // update newBooking in storage (bookings array)
+    let bookings = getStorage('bookings');
+    const index = bookings.findIndex(b => b.createdAt === newBooking.createdAt && b.email === newBooking.email);
+    if (index !== -1) {
+      bookings[index].providerEmail = provider.email;
+      bookings[index].status = 'assigned';
+      setStorage('bookings', bookings);
+    }
+  }
+}
+
 // Contact form handler
 function handleContact(event) {
   event.preventDefault();
@@ -189,4 +214,417 @@ document.addEventListener('DOMContentLoaded', function () {
   if (contactForm) {
     contactForm.addEventListener('submit', handleContact);
   }
+
+  // If on login page, attach login/signup handlers
+  const formLogin = document.getElementById('formLogin');
+  const formSignup = document.getElementById('formSignup');
+  if (formLogin) {
+    formLogin.addEventListener('submit', handleLogin);
+  }
+  if (formSignup) {
+    formSignup.addEventListener('submit', handleSignup);
+  }
+
+  // Initialize dashboards
+  const bookingsListEl = document.getElementById('bookingsList');
+  const requestsListEl = document.getElementById('requestsList');
+  if (bookingsListEl) {
+    // capture location for dashboard map
+    captureLocation();
+    loadUserDashboard();
+  }
+  if (requestsListEl) {
+    // capture location for provider map
+    captureLocation();
+    loadProviderDashboard();
+  }
+
+  // Capture geolocation on booking page
+  if (bookingForm && navigator.geolocation) {
+    captureLocation();
+  }
 });
+
+/* ---------------------------------------------------------------------------
+ * User authentication and dashboard logic
+ * Users are stored in localStorage under the key 'users' and current user under
+ * 'currentUser'. Passwords are stored in plain text purely for demonstration.
+ */
+
+// Read users from storage
+function getUsers() {
+  return getStorage('users');
+}
+
+// Write users to storage
+function setUsers(users) {
+  setStorage('users', users);
+}
+
+// Get current logged in user
+function getCurrentUser() {
+  const data = localStorage.getItem('currentUser');
+  return data ? JSON.parse(data) : null;
+}
+
+// Set current logged in user
+function setCurrentUser(user) {
+  if (user) {
+    localStorage.setItem('currentUser', JSON.stringify(user));
+  } else {
+    localStorage.removeItem('currentUser');
+  }
+}
+
+// Handle user sign up
+function handleSignup(e) {
+  e.preventDefault();
+  const name = document.getElementById('signupName').value.trim();
+  const phone = document.getElementById('signupPhone').value.trim();
+  const email = document.getElementById('signupEmail').value.trim().toLowerCase();
+  const password = document.getElementById('signupPassword').value;
+  const role = document.getElementById('signupRole').value;
+  const carType = document.getElementById('signupCarType') ? document.getElementById('signupCarType').value : null;
+  const msgEl = document.getElementById('signupMsg');
+  msgEl.textContent = '';
+
+  if (!name || !phone || !email || !password || !role) {
+    msgEl.style.color = 'red';
+    msgEl.textContent = 'Please fill in all required fields.';
+    return;
+  }
+  let users = getUsers();
+  // ensure unique email
+  if (users.find(u => u.email === email)) {
+    msgEl.style.color = 'red';
+    msgEl.textContent = 'An account with that email already exists.';
+    return;
+  }
+  const user = {
+    id: Date.now(),
+    name,
+    phone,
+    email,
+    password,
+    role,
+    carType: role === 'provider' ? carType : null,
+    lat: null,
+    lng: null
+  };
+  users.push(user);
+  setUsers(users);
+  setCurrentUser({email, role, name});
+  msgEl.style.color = 'green';
+  msgEl.textContent = 'Account created successfully! Redirecting...';
+  setTimeout(() => {
+    if (role === 'provider') {
+      window.location.href = 'provider.html';
+    } else {
+      window.location.href = 'dashboard.html';
+    }
+  }, 1000);
+}
+
+// Handle user login
+function handleLogin(e) {
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  const password = document.getElementById('loginPassword').value;
+  const msgEl = document.getElementById('loginMsg');
+  msgEl.textContent = '';
+  const users = getUsers();
+  const user = users.find(u => u.email === email && u.password === password);
+  if (!user) {
+    msgEl.style.color = 'red';
+    msgEl.textContent = 'Invalid email or password.';
+    return;
+  }
+  setCurrentUser({email: user.email, role: user.role, name: user.name});
+  // Start geolocation watch to keep user position updated
+  watchUserLocation();
+  msgEl.style.color = 'green';
+  msgEl.textContent = 'Login successful! Redirecting...';
+  setTimeout(() => {
+    if (user.role === 'provider') {
+      window.location.href = 'provider.html';
+    } else {
+      window.location.href = 'dashboard.html';
+    }
+  }, 500);
+}
+
+// Logout current user
+function logout() {
+  setCurrentUser(null);
+  window.location.href = 'index.html';
+}
+
+// Capture user's current geolocation (if permitted)
+let currentPosition = null;
+function captureLocation() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      function(pos) {
+        currentPosition = {
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude
+        };
+      },
+      function(err) {
+        console.warn('Geolocation error:', err.message);
+      }
+    );
+  }
+}
+
+// Continuously update the current user's geolocation and persist to storage.
+let watchId = null;
+function watchUserLocation() {
+  const currentUser = getCurrentUser();
+  if (!currentUser || !navigator.geolocation) return;
+  // clear any existing watcher
+  if (watchId !== null) {
+    navigator.geolocation.clearWatch(watchId);
+    watchId = null;
+  }
+  watchId = navigator.geolocation.watchPosition(function(pos) {
+    currentPosition = {
+      latitude: pos.coords.latitude,
+      longitude: pos.coords.longitude
+    };
+    // Update user record in storage
+    let users = getUsers();
+    const idx = users.findIndex(u => u.email === currentUser.email);
+    if (idx !== -1) {
+      users[idx].lat = currentPosition.latitude;
+      users[idx].lng = currentPosition.longitude;
+      setUsers(users);
+    }
+    // update bookings for current user's own bookings (for customers) as current lat/lng of pickup maybe changed
+    if (currentUser.role === 'customer') {
+      let bookings = getStorage('bookings');
+      bookings.forEach(b => {
+        if (b.userEmail === currentUser.email) {
+          b.lat = currentPosition.latitude;
+          b.lng = currentPosition.longitude;
+        }
+      });
+      setStorage('bookings', bookings);
+    }
+  }, function(err) {
+    console.warn('watchPosition error:', err.message);
+  }, {enableHighAccuracy: true});
+}
+
+// Override handleBooking to store latitude/longitude
+const originalHandleBooking = handleBooking;
+handleBooking = function(event) {
+  event.preventDefault();
+  const form = event.target;
+  const formMessage = document.getElementById('formMessage');
+  formMessage.textContent = '';
+
+  // gather booking from original function
+  const booking = {
+    name: form.name.value.trim(),
+    phone: form.phone.value.trim(),
+    email: form.email.value.trim(),
+    vehicle: form.vehicle.value,
+    serviceType: form.serviceType.value,
+    pickup: form.pickup.value.trim(),
+    destination: form.destination.value.trim(),
+    datetime: form.datetime.value,
+    notes: form.notes.value.trim(),
+    createdAt: new Date().toISOString(),
+    lat: currentPosition ? currentPosition.latitude : null,
+    lng: currentPosition ? currentPosition.longitude : null,
+    userEmail: getCurrentUser() ? getCurrentUser().email : null,
+    status: 'pending'
+  };
+  // validation
+  if (!booking.name || !booking.phone || !booking.email || !booking.vehicle || !booking.serviceType || !booking.pickup) {
+    formMessage.style.color = 'red';
+    formMessage.textContent = 'Please fill in all required fields.';
+    return;
+  }
+  if (!booking.datetime) {
+    booking.datetime = new Date().toISOString();
+  }
+  const bookings = getStorage('bookings');
+  bookings.push(booking);
+  setStorage('bookings', bookings);
+
+  // Attempt to assign a provider to this new booking
+  assignProvider(booking);
+  form.reset();
+  formMessage.style.color = 'green';
+  formMessage.textContent = 'Your request has been submitted successfully! We will contact you shortly.';
+}
+
+// Load user dashboard: display bookings for logged in customer
+function loadUserDashboard() {
+  const current = getCurrentUser();
+  if (!current || current.role !== 'customer') {
+    // not authorized
+    window.location.href = 'login.html';
+    return;
+  }
+  // start geolocation watcher to update user position continuously
+  watchUserLocation();
+  // set user name
+  const nameEl = document.getElementById('userName');
+  if (nameEl) {
+    nameEl.textContent = current.name;
+  }
+  const listEl = document.getElementById('bookingsList');
+  if (!listEl) return;
+  const bookings = getStorage('bookings').filter(b => b.userEmail === current.email);
+  if (bookings.length === 0) {
+    listEl.innerHTML = '<p>You have no requests yet.</p>';
+  } else {
+    listEl.innerHTML = '';
+    bookings.forEach(b => {
+      const div = document.createElement('div');
+      div.className = 'booking-item';
+      // find provider details if assigned
+      let providerInfo = '';
+      if (b.providerEmail) {
+        const provider = getUsers().find(u => u.email === b.providerEmail);
+        if (provider) {
+          providerInfo = `<br>Assigned to: ${provider.name} (${provider.carType || 'Provider'})`;
+        }
+      }
+      div.innerHTML = `<strong>${b.serviceType}</strong> on ${new Date(b.datetime).toLocaleString()}<br>
+        Pickup: ${b.pickup}${b.destination ? ', Destination: ' + b.destination : ''}<br>
+        Status: ${b.status}${providerInfo}`;
+      listEl.appendChild(div);
+    });
+  }
+  // initialize map showing current and provider positions
+  if (typeof L !== 'undefined') {
+    const mapEl = document.getElementById('map');
+    if (mapEl) {
+      const map = L.map(mapEl).setView([5.6037, -0.1870], 12);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+      let userMarker = null;
+      let providerMarkers = [];
+      function refreshMarkers() {
+        const currentUser = getCurrentUser();
+        if (!currentUser) return;
+        const users = getUsers();
+        // update user marker
+        const self = users.find(u => u.email === currentUser.email);
+        if (self && self.lat && self.lng) {
+          const latlng = [self.lat, self.lng];
+          if (!userMarker) {
+            userMarker = L.marker(latlng, {icon: L.icon({iconUrl:'https://cdn-icons-png.flaticon.com/512/149/149071.png', iconSize:[28,28]})}).addTo(map).bindPopup('You');
+          } else {
+            userMarker.setLatLng(latlng);
+          }
+        }
+        // clear provider markers
+        providerMarkers.forEach(m => map.removeLayer(m));
+        providerMarkers = [];
+        // for each booking show provider location if assigned
+        const bookings = getStorage('bookings').filter(b => b.userEmail === currentUser.email);
+        bookings.forEach(b => {
+          if (b.providerEmail) {
+            const provider = users.find(u => u.email === b.providerEmail);
+            if (provider && provider.lat && provider.lng) {
+              const marker = L.marker([provider.lat, provider.lng], {icon: L.icon({iconUrl:'https://cdn-icons-png.flaticon.com/512/2308/2308443.png', iconSize:[32,32]})}).addTo(map);
+              marker.bindPopup(`${provider.name || 'Provider'} (${provider.carType || ''})`);
+              providerMarkers.push(marker);
+            }
+          }
+        });
+      }
+      // initial refresh and interval
+      refreshMarkers();
+      setInterval(refreshMarkers, 10000);
+    }
+  }
+}
+
+// Load provider dashboard: display all bookings on map and list
+function loadProviderDashboard() {
+  const current = getCurrentUser();
+  if (!current || current.role !== 'provider') {
+    window.location.href = 'login.html';
+    return;
+  }
+  // start geolocation watcher to update provider position continuously
+  watchUserLocation();
+  // set provider name
+  const nameEl = document.getElementById('providerName');
+  if (nameEl) {
+    nameEl.textContent = current.name;
+  }
+  const requestsEl = document.getElementById('requestsList');
+  if (!requestsEl) return;
+  const bookings = getStorage('bookings');
+  if (!bookings || bookings.length === 0) {
+    requestsEl.innerHTML = '<p>No service requests yet.</p>';
+  } else {
+    requestsEl.innerHTML = '';
+    bookings.forEach(b => {
+      const div = document.createElement('div');
+      div.className = 'booking-item';
+      // Determine assignment
+      let assignmentInfo = '';
+      if (b.providerEmail) {
+        if (b.providerEmail === current.email) {
+          assignmentInfo = ' <span style="color:green;">(Assigned to you)</span>';
+        } else {
+          const prov = getUsers().find(u => u.email === b.providerEmail);
+          assignmentInfo = ` <span style="color:gray;">(Assigned to ${prov ? prov.name : 'another provider'})</span>`;
+        }
+      }
+      div.innerHTML = `<strong>${b.serviceType}</strong> request by ${b.name}${assignmentInfo}<br>
+        Pickup: ${b.pickup}<br>
+        ${b.destination ? 'Destination: ' + b.destination + '<br>' : ''}Date: ${new Date(b.datetime).toLocaleString()}<br>
+        Status: ${b.status}`;
+      requestsEl.appendChild(div);
+    });
+  }
+  // map showing provider and requests
+  if (typeof L !== 'undefined') {
+    const mapEl = document.getElementById('providerMap');
+    if (mapEl) {
+      const map = L.map(mapEl).setView([5.6037, -0.1870], 11);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+      let providerMarker = null;
+      let customerMarkers = [];
+      function refreshProviderMap() {
+        const users = getUsers();
+        // update provider marker
+        const self = users.find(u => u.email === current.email);
+        if (self && self.lat && self.lng) {
+          const latlng = [self.lat, self.lng];
+          if (!providerMarker) {
+            providerMarker = L.marker(latlng, {icon: L.icon({iconUrl:'https://cdn-icons-png.flaticon.com/512/2308/2308443.png', iconSize:[32,32]})}).addTo(map).bindPopup('You');
+          } else {
+            providerMarker.setLatLng(latlng);
+          }
+        }
+        // clear existing customer markers
+        customerMarkers.forEach(m => map.removeLayer(m));
+        customerMarkers = [];
+        const bookings = getStorage('bookings');
+        bookings.forEach(b => {
+          if (b.lat && b.lng) {
+            const marker = L.marker([b.lat, b.lng], {icon: L.icon({iconUrl:'https://cdn-icons-png.flaticon.com/512/149/149071.png', iconSize:[28,28]})}).addTo(map);
+            marker.bindPopup(`${b.name} - ${b.serviceType}`);
+            customerMarkers.push(marker);
+          }
+        });
+      }
+      // initial map refresh and update interval
+      refreshProviderMap();
+      setInterval(refreshProviderMap, 10000);
+    }
+  }
+}
