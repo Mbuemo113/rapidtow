@@ -68,6 +68,18 @@
   <section>
     <div class="container">
       <h3>Service Requests</h3>
+      <!-- Filters for status and search -->
+      <div class="filters">
+        <label for="statusFilter">Filter by status:</label>
+        <select id="statusFilter">
+          <option value="all">All</option>
+          <option value="pending">Pending</option>
+          <option value="assigned-to-you">Assigned to You</option>
+          <option value="assigned-others">Assigned to Others</option>
+          <option value="completed">Completed</option>
+        </select>
+        <input type="text" id="searchInput" placeholder="Search requests...">
+      </div>
       <div id="requestsList" class="dashboard-list"></div>
       <h3>Request Locations</h3>
       <div id="providerMap" style="height:500px; margin-bottom:2rem;"></div>

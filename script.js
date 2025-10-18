@@ -186,6 +186,8 @@ function acceptRequest(createdAt) {
   if (booking) {
     booking.providerEmail = current.email;
     booking.status = 'assigned';
+    // record the time this request was accepted
+    booking.acceptedAt = new Date().toISOString();
     // remove provider from declined list if present
     if (booking.declinedProviders) {
       booking.declinedProviders = booking.declinedProviders.filter(e => e !== current.email);
@@ -217,6 +219,8 @@ function completeRequest(createdAt) {
   const booking = bookings.find(b => b.createdAt === createdAt);
   if (booking && booking.providerEmail === current.email) {
     booking.status = 'completed';
+    // record the time this request was completed
+    booking.completedAt = new Date().toISOString();
     setStorage('bookings', bookings);
     loadProviderDashboard();
   }
@@ -753,24 +757,60 @@ function loadProviderDashboard() {
         }
       }
 
-      // Build requests list with details and action buttons
+      // Build requests list with details, search and filter controls
       requestsEl.innerHTML = '';
+      // Grab filter and search inputs
+      const statusFilterEl = document.getElementById('statusFilter');
+      const searchInputEl = document.getElementById('searchInput');
+      // Attach event listeners once to reload dashboard on change/input
+      if (statusFilterEl && !statusFilterEl.dataset.listenerAttached) {
+        statusFilterEl.addEventListener('change', loadProviderDashboard);
+        statusFilterEl.dataset.listenerAttached = 'true';
+      }
+      if (searchInputEl && !searchInputEl.dataset.listenerAttached) {
+        searchInputEl.addEventListener('input', loadProviderDashboard);
+        searchInputEl.dataset.listenerAttached = 'true';
+      }
       if (!bookings || bookings.length === 0) {
         requestsEl.innerHTML = '<p>No service requests yet.</p>';
       } else {
         // sort bookings by date descending
-        const sortedBookings = bookings.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        sortedBookings.forEach(b => {
-          // Skip requests that current provider has declined
-          if (b.declinedProviders && b.declinedProviders.includes(current.email)) {
-            return;
-          }
+        let filtered = bookings.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        // apply filter for status
+        if (statusFilterEl) {
+          const val = statusFilterEl.value;
+          filtered = filtered.filter(b => {
+            // skip declined
+            if (b.declinedProviders && b.declinedProviders.includes(current.email)) return false;
+            if (val === 'pending') return b.status === 'pending';
+            if (val === 'assigned-to-you') return b.status === 'assigned' && b.providerEmail === current.email;
+            if (val === 'assigned-others') return b.status === 'assigned' && b.providerEmail && b.providerEmail !== current.email;
+            if (val === 'completed') return b.status === 'completed';
+            // default 'all'
+            return true;
+          });
+        }
+        // apply search
+        if (searchInputEl && searchInputEl.value.trim()) {
+          const q = searchInputEl.value.trim().toLowerCase();
+          filtered = filtered.filter(b => {
+            return (
+              (b.name && b.name.toLowerCase().includes(q)) ||
+              (b.serviceType && b.serviceType.toLowerCase().includes(q)) ||
+              (b.pickup && b.pickup.toLowerCase().includes(q)) ||
+              (b.destination && b.destination.toLowerCase().includes(q))
+            );
+          });
+        }
+        // Build list
+        filtered.forEach(b => {
           const div = document.createElement('div');
           div.className = 'booking-item';
-          // Build detail lines
+          // Build detail lines including email
           let details = '';
           details += `<p><strong>Service:</strong> ${b.serviceType}</p>`;
           details += `<p><strong>Customer:</strong> ${b.name} (${b.phone})</p>`;
+          details += `<p><strong>Email:</strong> ${b.email}</p>`;
           details += `<p><strong>Vehicle:</strong> ${b.vehicle}</p>`;
           details += `<p><strong>Pickup:</strong> ${b.pickup}</p>`;
           if (b.destination) details += `<p><strong>Destination:</strong> ${b.destination}</p>`;
@@ -779,7 +819,6 @@ function loadProviderDashboard() {
           // Determine assignment info and action buttons
           let actions = '';
           if (b.status === 'pending') {
-            // show accept/decline buttons
             actions += `<button class="btn-sm accept" onclick="acceptRequest('${b.createdAt}')">Accept</button>`;
             actions += `<button class="btn-sm decline" onclick="declineRequest('${b.createdAt}')">Decline</button>`;
           } else if (b.status === 'assigned') {
@@ -797,6 +836,9 @@ function loadProviderDashboard() {
           div.innerHTML = details + '<div class="actions">' + actions + '</div>';
           requestsEl.appendChild(div);
         });
+        if (filtered.length === 0) {
+          requestsEl.innerHTML = '<p>No requests match your criteria.</p>';
+        }
       }
   // map showing provider and requests
   if (typeof L !== 'undefined') {
