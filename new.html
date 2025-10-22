@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Remote HTML Viewer</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f9f9f9;
+    }
+    #viewer {
+      padding: 0;
+      margin: 0;
+    }
+    #error {
+      color: red;
+      padding: 1em;
+    }
+  </style>
+</head>
+<body>
+  <div id="viewer">Loading remote HTML…</div>
+  <div id="error"></div>
+
+  <script>
+    const url = "https://raw.githubusercontent.com/Mbuemo113/rapidtow/refs/heads/main/full.html";
+
+    fetch(url)
+      .then(async response => {
+        if (!response.ok) throw new Error(`HTTP ${response.status} – ${response.statusText}`);
+        const html = await response.text();
+        // Inject the remote HTML content into the current page
+        document.open();
+        document.write(html);
+        document.close();
+      })
+      .catch(err => {
+        document.getElementById("error").textContent = "❌ Error loading remote file: " + err.message;
+      });
+  </script>
+</body>
+</html>
